@@ -3,35 +3,36 @@ import folium
 import geopandas as gpd
 import numpy as np
 from assign_scores import assign_score
-from get_colors import get_color
+from get_color_and_tooltip import get_color_and_tooltip
 
 app = Flask(__name__)
 
 """IMPORT ALL GEOGRAPHICAL DATA IN GEOJSON FORM"""
 # Transportation
-ev_charging_stations_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\EV_Charging_Stations.geojson")
+ev_charging_stations_gdf = gpd.read_file("./geojson_data/EV_Charging_Stations.geojson")
 # Services
-fire_stations_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\BFES_Fire_Stations.geojson")
-hospital_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\Hospitals.geojson")
-schools_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\Schools.geojson")
-transit_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\Transit.geojson")
+fire_stations_gdf = gpd.read_file("./geojson_data/BFES_Fire_Stations.geojson")
+hospital_gdf = gpd.read_file("./geojson_data/Hospitals.geojson")
+schools_gdf = gpd.read_file("./geojson_data/Schools.geojson")
+transit_gdf = gpd.read_file("./geojson_data/Transit.geojson")
+
 
 
 # Land Use
-registered_plan_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\Registered_Plan_of_Subdivision.geojson")
-official_plan_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\Official_Plan_Schedule_A%3A_General_Land_Use.geojson")
-future_condo_development = gpd.read_file("C:\\Users\\USER\\Downloads\\Draft_Plan_of_Condominium.geojson")
+registered_plan_gdf = gpd.read_file("./geojson_data/Registered_Plan_of_Subdivision.geojson")
+official_plan_gdf = gpd.read_file("./geojson_data/Official_Plan_Schedule_A%3A_General_Land_Use.geojson")
+future_condo_development = gpd.read_file("./geojson_data/Draft_Plan_of_Condominium.geojson")
 
 # Zoning
-heritage_properties_gdf = gpd.read_file("C:\\Users\\USER\\Downloads\\Heritage_Properties.geojson")
+heritage_properties_gdf = gpd.read_file("./geojson_data/Heritage_Properties.geojson")
 
-Underutilized_Addresses = gpd.read_file("C:\\Users\\USER\\Downloads\\Underutilized_Addresses.geojson")
+Underutilized_Addresses = gpd.read_file("./geojson_data/Underutilized_Addresses.geojson")
 
 Underutilized_Addresses['LOCATION'] = Underutilized_Addresses.apply(lambda row: row['FULL_ADDRESS'] if row['LOCATION'] == 'Occupied' else row['LOCATION'], axis=1)
 
 
 # Combine all transportation-related points into a single GeoDataFrame
-transportation_gdf = gpd.overlay(ev_charging_stations_gdf, streets_centreline_gdf, how='union')
+transportation_gdf = gpd.overlay(ev_charging_stations_gdf, how='union')
 
 
 """CONDO PLANS"""
@@ -102,54 +103,50 @@ for idx, Addresses in Underutilized_Addresses.iterrows():
 ranked_Underutilized_Addresses = Underutilized_Addresses.sort_values(by='score', ascending=False)
 
 
+# This UrbanPulse full logic
 def Brampton(location):
-    if location == "vacant":
-        Location = ranked_Underutilized_Addresses[ranked_Underutilized_Addresses['LOCATION'] == location]
-    
+    # First try to find the location in ranked_condo_plans_gdf
     Location = ranked_condo_plans_gdf[ranked_condo_plans_gdf['LOCATION'] == location]
     
-    # Calculate the centroid of the selected location's geometry
-    # This assumes that the geometry is a valid geometry
-    # and that Location is not empty
+    # If not found in the first dataset, try the second
+    if Location.empty:
+        Location = ranked_Underutilized_Addresses[ranked_Underutilized_Addresses['LOCATION'] == location]
+    
+    # Continue with the location processing
     if not Location.empty:
         centroid = Location.geometry.centroid.iloc[0]
         map_location = [centroid.y, centroid.x]
     else:
-        # Default location if no geometry is found
+        # Default location if not found in both datasets
         map_location = [43.7315, -79.7624]
-    
-    # Create the map centered on the centroid of the selected location
+
     map = folium.Map(location=map_location, zoom_start=15)
-    
-    if location == None:
+    if location is None:
         return map
     
-    max_score = ranked_condo_plans_gdf['score'].max()
-    ranked_condo_plans_gdf['normalized_score'] = ranked_condo_plans_gdf['score'] / max_score
-    Location['color'] = Location['normalized_score'].apply(get_color)
+    # Check if the 'score' column exists and process accordingly
+    if 'score' in Location.columns and not Location['score'].empty:
+        max_score = Location['score'].max()
+        Location['normalized_score'] = Location['score'] / max_score
+        Location['color'], Location['tooltip_message'] = zip(*Location['normalized_score'].apply(get_color_and_tooltip))
     
-    if Location == "vacant":
-    # Add each point to the map with color based on its normalized score
-        for _, loc in Location.iterrows():
-            folium.Marker(
-                location=[loc['geometry'].y, loc['geometry'].x],
-                icon=folium.Icon(color=get_color(loc['normalized_score'])),
-                tooltip=f'Score: {loc["score"]}'
-            ).add_to(map)
-    
-    else:
+    for _, loc in Location.iterrows():
+        if 'geometry' in loc and loc['geometry']:
+            if loc['geometry'].geom_type == 'Point':
+                location_point = [loc['geometry'].y, loc['geometry'].x]
+            else:  # For Polygon/MultiPolygon geometries, use the centroid
+                location_point = [loc['geometry'].centroid.y, loc['geometry'].centroid.x]
             
-        for _, loc in Location.iterrows():
-            folium.GeoJson(
-                loc['geometry'],
-                style_function=lambda x, color=loc['color']: {'fillColor': color, 'color': color},
-                tooltip=f'Score: {loc["score"]}'
+            folium.Marker(
+                location=location_point,
+                icon=folium.Icon(color=loc['color'] if 'color' in loc else 'blue'),
+                tooltip=folium.Tooltip(loc['tooltip_message'] if 'tooltip_message' in loc else 'No additional info')
             ).add_to(map)
     
     return map
 
-
-@app.route("/map")
+# endpoint definition
+@app.route("/map", methods=["GET"], strict_slashes=False)
 def get_folioum_map():
     """Return the map HTML."""
     location = request.args.get('location')

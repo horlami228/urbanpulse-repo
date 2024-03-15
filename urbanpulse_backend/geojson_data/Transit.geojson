@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "Transit",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "OBJECTID": 1, "FACILITY_NAME": "HEART LAKE TERMINAL", "ADDRESS": "0 CONESTOGA DR", "TYPE": "BUS TERMINAL", "STATUS": "ACTIVE" }, "geometry": { "type": "Point", "coordinates": [ -79.798075217999951, 43.727916267000069 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 2, "FACILITY_NAME": "BRAMALEA TERMINAL", "ADDRESS": "160 CENTRAL PARK DR", "TYPE": "BUS TERMINAL", "STATUS": "ACTIVE" }, "geometry": { "type": "Point", "coordinates": [ -79.720723586999952, 43.718974622000076 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 4, "FACILITY_NAME": "BRAMPTON GATEWAY TERMINAL", "ADDRESS": "501 MAIN ST S", "TYPE": "BUS TERMINAL", "STATUS": "ACTIVE" }, "geometry": { "type": "Point", "coordinates": [ -79.733899793999967, 43.665942588000064 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 5, "FACILITY_NAME": "DOWNTOWN BRAMPTON TERMINAL", "ADDRESS": "8 NELSON ST W", "TYPE": "BUS TERMINAL", "STATUS": "ACTIVE" }, "geometry": { "type": "Point", "coordinates": [ -79.762202729999956, 43.686905420000073 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 6, "FACILITY_NAME": "TRINITY COMMON TERMINAL", "ADDRESS": "164 GREAT LAKES DR", "TYPE": "BUS TERMINAL", "STATUS": "ACTIVE" }, "geometry": { "type": "Point", "coordinates": [ -79.764163872999973, 43.730413070000054 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 7, "FACILITY_NAME": "SHERIDAN COLLEGE TERMINAL", "ADDRESS": null, "TYPE": "BUS TERMINAL", "STATUS": "ACTIVE" }, "geometry": { "type": "Point", "coordinates": [ -79.740944831999968, 43.656703112000059 ] } }
+]
+}
