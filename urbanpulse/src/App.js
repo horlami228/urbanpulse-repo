@@ -8,14 +8,14 @@ function App() {
 
   useEffect(() => {
     // Generate an initial map with no specific location
-    const initialMapUrl = `http://localhost:5000/map?location=None`;
+    const initialMapUrl = `http://localhost:8000/api/map?location=None`;
     setMapUrl(initialMapUrl);
   }, []);
 
   const handleLocationSubmit = (location) => {
     const url = location
-      ? `http://localhost:5000/map?location=${encodeURIComponent(location)}`
-      : `http://localhost:5000/map?location=None`;
+      ? `http://localhost:8000/map?location=${encodeURIComponent(location)}`
+      : `http://localhost:8000/map?location=None`;
     setMapUrl(url);
   };
 

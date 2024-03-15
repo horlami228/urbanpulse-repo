@@ -1,9 +1,14 @@
 from flask import Flask, render_template, request
+from flask_cors import CORS
 import folium
 import geopandas as gpd
 import numpy as np
 from assign_scores import assign_score
 from get_color_and_tooltip import get_color_and_tooltip
+
+
+app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": ["https://your-frontend-domain.vercel.app"]}})  # Replace with your frontend domain
 
 app = Flask(__name__)
 
@@ -24,15 +29,14 @@ official_plan_gdf = gpd.read_file("./geojson_data/Official_Plan_Schedule_A%3A_Ge
 future_condo_development = gpd.read_file("./geojson_data/Draft_Plan_of_Condominium.geojson")
 
 # Zoning
-heritage_properties_gdf = gpd.read_file("./geojson_data/Heritage_Properties.geojson")
 
 Underutilized_Addresses = gpd.read_file("./geojson_data/Underutilized_Addresses.geojson")
 
 Underutilized_Addresses['LOCATION'] = Underutilized_Addresses.apply(lambda row: row['FULL_ADDRESS'] if row['LOCATION'] == 'Occupied' else row['LOCATION'], axis=1)
 
 
-# Combine all transportation-related points into a single GeoDataFrame
-transportation_gdf = gpd.overlay(ev_charging_stations_gdf, how='union')
+# # Combine all transportation-related points into a single GeoDataFrame
+# transportation_gdf = gpd.overlay(ev_charging_stations_gdf, how='union')
 
 
 """CONDO PLANS"""
@@ -105,6 +109,13 @@ ranked_Underutilized_Addresses = Underutilized_Addresses.sort_values(by='score',
 
 # This UrbanPulse full logic
 def Brampton(location):
+    # Default location
+    map_location = [43.7315, -79.7624]
+
+    map = folium.Map(location=map_location, zoom_start=13)
+    if location is None:
+        return map
+
     # First try to find the location in ranked_condo_plans_gdf
     Location = ranked_condo_plans_gdf[ranked_condo_plans_gdf['LOCATION'] == location]
     
@@ -118,11 +129,11 @@ def Brampton(location):
         map_location = [centroid.y, centroid.x]
     else:
         # Default location if not found in both datasets
-        map_location = [43.7315, -79.7624]
-
-    map = folium.Map(location=map_location, zoom_start=15)
-    if location is None:
+        map = folium.Map(location=map_location, zoom_start=15)
+        marker = folium.Marker(location=map_location, popup="Location not found in data sources")
+        marker.add_to(map)
         return map
+
     
     # Check if the 'score' column exists and process accordingly
     if 'score' in Location.columns and not Location['score'].empty:
@@ -146,7 +157,7 @@ def Brampton(location):
     return map
 
 # endpoint definition
-@app.route("/map", methods=["GET"], strict_slashes=False)
+@app.route("/api/map", methods=["GET"], strict_slashes=False)
 def get_folioum_map():
     """Return the map HTML."""
     location = request.args.get('location')
