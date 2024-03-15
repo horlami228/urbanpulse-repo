@@ -3,4 +3,4 @@ folium
 flask
 numpy
 flask_cors
-urllib3==1.26.x
+urllib3==1.26.6
